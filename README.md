@@ -7,6 +7,17 @@
 4. `npm install && npm run dev`
 5. Activar suscripción pagada: `update tenants set subscription_until = now() + interval '30 days' where id = '<id>';`
 
+## Modo demostración (sin Supabase)
+Con `VITE_DEMO=true` la app no necesita Supabase: carga Postgres dentro del navegador (PGlite) con las mismas
+migraciones y reglas de seguridad, datos de ejemplo y la cuenta `demo@vetgest.app` / `demo1234`. Los datos quedan
+solo en ese navegador y se pueden reiniciar desde el aviso superior. El primer ingreso descarga ~17 MB.
+
+```bash
+VITE_DEMO=true npm run dev
+```
+
+Sirve para vistas previas y presentaciones. Fuera de la demostración, PGlite no se incluye en el build.
+
 ## Tests
 `npm test` ejecuta 63 pruebas: lógica de precios, carrito, agenda, errores y cambios optimistas; la cola sin conexión
 (orden de envío, reintentos ante falta de señal y cambios rechazados); componentes (carrito, citas, historial de ventas,

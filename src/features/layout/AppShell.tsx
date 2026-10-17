@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { supabase } from '@/infra/supabase/client'
 import { SyncStatus } from '@/features/sync/SyncStatus'
+import { DemoBanner } from '@/features/demo/DemoBanner'
 
 export const NAV = [
   { to: '/clientes', label: 'Clientes' },
@@ -18,6 +19,7 @@ export function AppShell() {
   return (
     <div className="mx-auto min-h-screen max-w-3xl">
       <header className="sticky top-0 z-10 border-b bg-white">
+        <DemoBanner />
         <div className="flex items-center justify-between px-4 pt-3">
           <span className="font-semibold text-teal-800">VetGest</span>
           <button className="text-sm text-slate-500 underline" onClick={() => supabase.auth.signOut()}>Cerrar sesión</button>
