@@ -1,14 +1,26 @@
 # VetGest (MVP)
 
 ## Puesta en marcha
-1. Crea un proyecto en Supabase y ejecuta en el SQL Editor, en orden, los archivos de `supabase/migrations/` (0001 a 0005).
+1. Crea un proyecto en Supabase y ejecuta `supabase/setup.sql` completo en el SQL Editor (reúne las migraciones 0001 a 0006).
+   En un proyecto que ya tenga el esquema, ejecuta solo las migraciones nuevas. Si agregas una migración, corre `npm run db:bundle`.
 2. Auth → Providers: activa Email y Google; agrega tu URL en Redirect URLs.
 3. `cp .env.example .env` y completa `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
 4. `npm install && npm run dev`
 5. Activar suscripción pagada: `update tenants set subscription_until = now() + interval '30 days' where id = '<id>';`
 
+## Modo demostración (sin Supabase)
+Con `VITE_DEMO=true` la app no necesita Supabase: carga Postgres dentro del navegador (PGlite) con las mismas
+migraciones y reglas de seguridad, datos de ejemplo y la cuenta `demo@vetgest.app` / `demo1234`. Los datos quedan
+solo en ese navegador y se pueden reiniciar desde el aviso superior. El primer ingreso descarga ~17 MB.
+
+```bash
+VITE_DEMO=true npm run dev
+```
+
+Sirve para vistas previas y presentaciones. Fuera de la demostración, PGlite no se incluye en el build.
+
 ## Tests
-`npm test` ejecuta 63 pruebas: lógica de precios, carrito, agenda, errores y cambios optimistas; la cola sin conexión
+`npm test` ejecuta 65 pruebas: lógica de precios, carrito, agenda, errores y cambios optimistas; la cola sin conexión
 (orden de envío, reintentos ante falta de señal y cambios rechazados); componentes (carrito, citas, historial de ventas,
 formularios de cliente y paciente) y la base de datos real (migraciones en PGlite: RLS, aislamiento entre negocios,
 ventas atómicas y anulaciones, bloqueo por stock y suscripción vencida, precio por tamaño y cobro al completar citas).
