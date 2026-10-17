@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useCrud } from '@/shared/useCrud'
-import { useRepository } from '@/shared/useRepository'
-import { Button, Empty, ErrorNote, Field, Input } from '@/shared/ui'
+import { Button, Empty, Field, Input } from '@/shared/ui'
 import { formatUsd } from '@/core/pricing'
 import type { GroomingService } from '@/core/entities'
 
@@ -20,9 +19,9 @@ function ServiceRow({ s, onSave, onRemove }: { s: GroomingService; onSave: (d: P
   const [mins, setMins] = useState(String(s.duration_min))
   return (
     <li className="py-2">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-medium">{s.name} <span className="text-sm font-normal text-slate-500">{s.duration_min} min</span></span>
-        <span className="flex items-center gap-3 text-sm">
+        <span className="flex flex-wrap items-center gap-3 text-sm">
           <span>{formatUsd(s.price_small)} / {formatUsd(s.price_medium)} / {formatUsd(s.price_large)}</span>
           <Button variant="ghost" onClick={() => setOpen(!open)}>{open ? 'Cerrar' : 'Editar'}</Button>
         </span>
@@ -39,11 +38,12 @@ function ServiceRow({ s, onSave, onRemove }: { s: GroomingService; onSave: (d: P
 }
 
 export function ServicesPage() {
-  const { list, create, update, remove } = useCrud<GroomingService>('grooming_services', useRepository<GroomingService>('grooming_services'))
+  const { list, create, update, remove } = useCrud<GroomingService>('grooming_services')
   const [name, setName] = useState(''); const [mins, setMins] = useState('60'); const [v, setV] = useState<Prices>({ price_small: '', price_medium: '', price_large: '' })
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    create.mutate({ name: name.trim(), ...toNumbers(v), duration_min: Number(mins) }, { onSuccess: () => { setName(''); setV({ price_small: '', price_medium: '', price_large: '' }) } })
+    create({ name: name.trim(), ...toNumbers(v), duration_min: Number(mins) })
+    setName(''); setV({ price_small: '', price_medium: '', price_large: '' })
   }
   return (
     <section className="p-4">
@@ -54,9 +54,8 @@ export function ServicesPage() {
         <PriceFields v={v} onChange={(k, val) => setV({ ...v, [k]: val })} />
         <div className="sm:col-span-2"><Button disabled={!name.trim()}>Agregar servicio</Button></div>
       </form>
-      <ErrorNote error={create.error ?? update.error} />
       {list.data?.length === 0 && <Empty>Aún no tienes servicios. Agrega el primero, por ejemplo "Baño y corte".</Empty>}
-      <ul className="divide-y">{list.data?.map(s => <ServiceRow key={s.id} s={s} onSave={data => update.mutate({ id: s.id, data })} onRemove={() => remove.mutate(s.id)} />)}</ul>
+      <ul className="divide-y">{list.data?.map(s => <ServiceRow key={s.id} s={s} onSave={data => update(s.id, data)} onRemove={() => remove(s.id, s.name)} />)}</ul>
     </section>
   )
 }

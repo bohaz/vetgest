@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCrud } from '@/shared/useCrud'
-import { useRepository } from '@/shared/useRepository'
-import { Button, Empty, ErrorNote, Field, Input, Select, Textarea } from '@/shared/ui'
+import { Button, Empty, Field, Input, Select, Textarea } from '@/shared/ui'
 import { formatUsd } from '@/core/pricing'
 import { SIZES, appointmentsOfDay, daySummary, findConflict, localDateStr, priceFor, reminderText, shiftDay, toStartsAt, whatsappLink } from '@/core/grooming'
 import type { Client, GroomingAppointment, GroomingService, Patient, PetSize } from '@/core/entities'
@@ -11,10 +10,10 @@ import { AppointmentRow } from './AppointmentRow'
 const blank = { patient_id: '', service_id: '', size: 'mediano' as PetSize, time: '09:00', notes: '' }
 
 export function AgendaPage() {
-  const appts = useCrud<GroomingAppointment>('grooming_appointments', useRepository<GroomingAppointment>('grooming_appointments'))
-  const services = useCrud<GroomingService>('grooming_services', useRepository<GroomingService>('grooming_services'))
-  const patients = useCrud<Patient>('patients', useRepository<Patient>('patients'))
-  const clients = useCrud<Client>('clients', useRepository<Client>('clients'))
+  const appts = useCrud<GroomingAppointment>('grooming_appointments')
+  const services = useCrud<GroomingService>('grooming_services')
+  const patients = useCrud<Patient>('patients')
+  const clients = useCrud<Client>('clients')
   const [date, setDate] = useState(localDateStr()); const [f, setF] = useState(blank)
 
   const svc = services.list.data ?? []; const pats = patients.list.data ?? []; const cls = clients.list.data ?? []
@@ -25,12 +24,14 @@ export function AgendaPage() {
   const pickPatient = (id: string) => setF({ ...f, patient_id: id, size: pats.find(p => p.id === id)?.size ?? f.size })
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
-    appts.create.mutate({ patient_id: f.patient_id, service_id: f.service_id || undefined, starts_at: toStartsAt(date, f.time), status: 'pendiente', size: f.size, notes: f.notes.trim() || undefined },
-      { onSuccess: () => setF({ ...blank, time: f.time }) })
+    // El precio se calcula aquí para mostrarlo al instante (también sin conexión); la base de datos aplica la misma regla.
+    appts.create({ patient_id: f.patient_id, service_id: f.service_id || undefined, starts_at: toStartsAt(date, f.time), status: 'pendiente', size: f.size,
+      price_usd: service ? priceFor(service, f.size) : undefined, notes: f.notes.trim() || undefined })
+    setF({ ...blank, time: f.time })
   }
   const changeStatus = (a: GroomingAppointment, status: 'en_proceso' | 'cancelada') => {
     if (status === 'cancelada' && !confirm('¿Cancelar esta cita?')) return
-    appts.update.mutate({ id: a.id, data: { status } })
+    appts.update(a.id, { status })
   }
 
   return (
@@ -59,14 +60,13 @@ export function AgendaPage() {
           {conflict && <p role="alert" className="text-sm text-amber-800 sm:col-span-2">Este horario se cruza con otra cita del día. Puedes agendar igualmente.</p>}
           <div className="sm:col-span-2"><Button disabled={!f.patient_id || !f.service_id || !f.time}>Agendar cita</Button></div>
         </form>)}
-      <ErrorNote error={appts.create.error ?? appts.update.error} />
 
       {day.length === 0 && <Empty>No hay citas para este día.</Empty>}
       <ul className="divide-y">{day.map(a => {
         const p = pats.find(x => x.id === a.patient_id); const c = cls.find(x => x.id === p?.client_id); const s = svc.find(x => x.id === a.service_id)
         const href = a.status === 'pendiente' && p ? whatsappLink(c?.phone, reminderText(p.name, s?.name ?? 'peluquería', a.starts_at)) : null
         return <AppointmentRow key={a.id} appt={a} patient={p?.name ?? '—'} owner={c?.full_name ?? '—'} service={s?.name ?? 'Sin servicio'} reminderHref={href}
-          onStatus={st => changeStatus(a, st)} onComplete={pay => appts.update.mutate({ id: a.id, data: { status: 'completada', ...pay } })} />
+          onStatus={st => changeStatus(a, st)} onComplete={pay => appts.update(a.id, { status: 'completada', ...pay, completed_at: new Date().toISOString() })} />
       })}</ul>
     </section>
   )

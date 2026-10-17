@@ -15,3 +15,7 @@ export async function setRate(tenantId: string, rate: number) {
   const { error } = await supabase.rpc('set_exchange_rate', { p_tenant: tenantId, p_rate: rate })
   if (error) throw error
 }
+export async function voidSale(saleId: string, reason: string) {
+  const { error } = await supabase.rpc('void_sale', { p_sale: saleId, p_reason: reason })
+  if (error) throw error
+}
