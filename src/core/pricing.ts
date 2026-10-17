@@ -1,4 +1,5 @@
 import type { Product } from './entities'
+import { errorMessage } from './errors'
 
 export type PayMethod = 'efectivo_usd' | 'efectivo_bs' | 'pago_movil' | 'zelle_binance'
 export const PAY_METHODS: { value: PayMethod; label: string }[] = [
@@ -33,19 +34,5 @@ export function setQty(cart: CartLine[], productId: string, qty: number): CartLi
 }
 export const stockProblems = (cart: CartLine[]) => cart.filter(l => l.qty > l.stock).map(l => l.name)
 
-const ERRORS: Record<string, string> = {
-  suscripcion_vencida: 'Tu prueba o suscripción venció. Renueva para registrar ventas.',
-  venta_vacia: 'Agrega al menos un producto a la venta.',
-  no_autorizado: 'No tienes permiso para esta acción.',
-  tasa_invalida: 'La tasa debe ser un número mayor que cero.',
-  cantidad_invalida: 'Hay una cantidad inválida en la venta.',
-  producto_no_existe: 'Un producto de la venta ya no existe.',
-}
-/** Traduce los errores de la base de datos a mensajes para el usuario. */
-export function saleErrorMessage(e: unknown): string {
-  const msg = String((e as { message?: string })?.message ?? e)
-  const stock = msg.match(/stock_insuficiente:\s*(.+)/)
-  if (stock) return `No hay stock suficiente de ${stock[1].trim()}.`
-  const key = Object.keys(ERRORS).find(k => msg.includes(k))
-  return key ? ERRORS[key] : 'No se pudo registrar la venta. Revisa tu conexión e inténtalo de nuevo.'
-}
+/** Traduce los errores de una venta a mensajes para el usuario. */
+export const saleErrorMessage = (e: unknown) => errorMessage(e, 'No se pudo registrar la venta. Revisa tu conexión e inténtalo de nuevo.')

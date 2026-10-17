@@ -12,6 +12,4 @@ export function Button({ variant = 'primary', ...p }: ButtonHTMLAttributes<HTMLB
   const styles = { primary: 'bg-teal-700 text-white hover:bg-teal-800', ghost: 'border border-slate-300 hover:bg-slate-50', danger: 'text-red-600 hover:bg-red-50' }
   return <button {...p} className={`rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50 ${styles[variant]}`} />
 }
-export const ErrorNote = ({ error }: { error: unknown }) =>
-  error ? <p role="alert" className="text-sm text-red-600">No se pudo guardar. Revisa tu conexión o el estado de tu suscripción.</p> : null
 export const Empty = ({ children }: { children: ReactNode }) => <p className="py-6 text-center text-slate-500">{children}</p>
