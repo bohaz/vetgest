@@ -1,4 +1,4 @@
-import type { Entity, Repository } from '@/core/repository'
+import type { Entity, NewEntity, Repository } from '@/core/repository'
 import { supabase } from './client'
 
 // DRY: una sola clase sirve para todas las tablas; RLS aísla cada negocio.
@@ -10,7 +10,7 @@ export class SupabaseRepository<T extends Entity> implements Repository<T> {
     if (error) throw error
     return data as T[]
   }
-  async create(input: Omit<T, 'id' | 'tenant_id' | 'updated_at'>) {
+  async create(input: NewEntity<T>) {
     const { data, error } = await supabase.from(this.table).insert({ ...input, tenant_id: this.tenantId }).select().single()
     if (error) throw error
     return data as T
