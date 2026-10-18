@@ -26,6 +26,9 @@ VITE_DEMO=true npm run dev
 
 Sirve para vistas previas y presentaciones. Fuera de la demostración, PGlite no se incluye en el build.
 
+## Respaldos
+Respaldo semanal cifrado y tarea que evita que Supabase pause el proyecto: ver [docs/respaldos.md](docs/respaldos.md).
+
 ## Tests
 `npm test` ejecuta 65 pruebas: lógica de precios, carrito, agenda, errores y cambios optimistas; la cola sin conexión
 (orden de envío, reintentos ante falta de señal y cambios rechazados); componentes (carrito, citas, historial de ventas,
