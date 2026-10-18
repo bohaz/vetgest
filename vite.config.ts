@@ -20,8 +20,8 @@ export default defineConfig({
   plugins: [react(), tailwind(), VitePWA({
     registerType: 'autoUpdate',
     // En la demostración, la base de datos del navegador (~16 MB) también se guarda para usarla sin conexión.
-    workbox: { maximumFileSizeToCacheInBytes: demo ? 20 * 1024 * 1024 : 2 * 1024 * 1024, globPatterns: ['**/*.{js,css,html,png,svg,wasm,data}'] },
-    manifest: { name: 'VetGest', short_name: 'VetGest', theme_color: '#0f766e', background_color: '#ffffff', display: 'standalone',
+    workbox: { maximumFileSizeToCacheInBytes: demo ? 20 * 1024 * 1024 : 2 * 1024 * 1024, globPatterns: ['**/*.{js,css,html,png,svg,woff2,wasm,data}'] },
+    manifest: { name: 'VetGest', short_name: 'VetGest', theme_color: '#0b4a45', background_color: '#ffffff', display: 'standalone',
       icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }] },
   })],
 })

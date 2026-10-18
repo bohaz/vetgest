@@ -16,12 +16,12 @@ export function SyncStatus() {
   return (
     <div aria-live="polite">
       {!online && (
-        <p className="bg-amber-50 px-4 py-2 text-sm text-amber-900">
+        <p className="bg-warn-soft px-4 py-2 text-sm font-medium text-warn-ink">
           Sin conexión. Puedes seguir trabajando{pending > 0 ? `: ${plural(pending, 'cambio se guardará', 'cambios se guardarán')} al volver la señal` : ''}.
         </p>)}
-      {online && pending > 0 && <p className="bg-slate-50 px-4 py-2 text-sm text-slate-700">Guardando {plural(pending, 'cambio', 'cambios')}…</p>}
+      {online && pending > 0 && <p className="bg-brand-soft px-4 py-2 text-sm font-medium text-brand-ink">Guardando {plural(pending, 'cambio', 'cambios')}…</p>}
       {failed.length > 0 && (
-        <div role="alert" className="space-y-2 bg-red-50 px-4 py-2 text-sm text-red-800">
+        <div role="alert" className="space-y-2 bg-danger-soft px-4 py-2 text-sm text-danger-ink">
           <p className="font-medium">{plural(failed.length, 'cambio no se pudo guardar', 'cambios no se pudieron guardar')}:</p>
           <ul className="space-y-1">{failed.map(f => (
             <li key={f.id} className="flex flex-wrap items-center justify-between gap-2">

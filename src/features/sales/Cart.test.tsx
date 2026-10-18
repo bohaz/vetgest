@@ -12,7 +12,7 @@ describe('Cart', () => {
   })
   it('muestra totales en USD y Bs', () => {
     render(<Cart lines={[line]} rate={40} onQty={vi.fn()} onRemove={vi.fn()} />)
-    expect(screen.getByText('Total: USD 20.00')).toBeTruthy(); expect(screen.getByText(formatBs(800))).toBeTruthy()
+    expect(screen.getByText('Total: USD 20,00')).toBeTruthy(); expect(screen.getByText(formatBs(800))).toBeTruthy()
   })
   it('pide definir la tasa si no existe', () => {
     render(<Cart lines={[line]} rate={null} onQty={vi.fn()} onRemove={vi.fn()} />)

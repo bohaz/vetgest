@@ -1,1 +1,31 @@
+@import "@fontsource-variable/figtree";
 @import "tailwindcss";
+
+/* Tokens de VetGest: un solo lugar para colores y tipografía. */
+@theme {
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand: #0f766e;          /* acciones principales */
+  --color-brand-strong: #0b4a45;   /* menú lateral y cabeceras */
+  --color-brand-raised: #14615a;   /* ítem activo sobre fondo oscuro */
+  --color-brand-bright: #2bb3a3;   /* logotipo */
+  --color-brand-soft: #e3f2ef;     /* fondos suaves de íconos y estados */
+  --color-brand-ink: #0a5a52;      /* texto sobre brand-soft */
+
+  --color-ink: #142422;            /* texto principal */
+  --color-muted: #586866;          /* texto secundario (5.9:1 sobre blanco) */
+  --color-line: #e1e8e6;           /* bordes */
+  --color-line-strong: #cfddda;    /* bordes de controles */
+  --color-ground: #f3f6f5;         /* fondo de la app */
+  --color-on-dark: #d5e7e3;        /* texto sobre brand-strong */
+
+  --color-warn-soft: #fef3c7;
+  --color-warn-line: #f5ddae;
+  --color-warn-ink: #8a4b06;
+  --color-danger-soft: #fdecec;
+  --color-danger-ink: #a61b1b;
+}
+
+@layer base {
+  body { @apply bg-ground font-sans text-ink antialiased; }
+}

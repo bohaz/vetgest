@@ -17,7 +17,7 @@ export function DemoBanner() {
     location.replace('/')
   }
   return (
-    <p className="flex flex-wrap items-center justify-between gap-2 bg-amber-50 px-4 py-1.5 text-xs text-amber-900">
+    <p className="flex flex-wrap items-center justify-between gap-2 bg-warn-soft px-4 py-1.5 text-xs text-warn-ink">
       <span>Demostración · los datos se guardan solo en este navegador</span>
       <button className="underline disabled:opacity-50" disabled={busy} onClick={reset}>{busy ? 'Reiniciando…' : 'Reiniciar datos'}</button>
     </p>
