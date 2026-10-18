@@ -1,13 +1,18 @@
 # VetGest (MVP)
 
 ## Puesta en marcha
-1. Crea un proyecto en Supabase y ejecuta `supabase/setup.sql` completo en el SQL Editor (reúne las migraciones 0001 a 0006).
+1. Crea un proyecto en Supabase y ejecuta `supabase/setup.sql` completo en el SQL Editor (reúne las migraciones 0001 a 0007).
    En un proyecto que ya tenga el esquema, ejecuta solo las migraciones nuevas. Si agregas una migración, corre `npm run db:bundle`.
 2. Auth → Providers: activa Email; agrega tu URL en Site URL y Redirect URLs. Para el piloto conviene desactivar *Confirm email*.
    Google es opcional: actívalo en Supabase y define `VITE_GOOGLE_AUTH=true` para mostrar el botón.
 3. `cp .env.example .env` y completa `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
 4. `npm install && npm run dev`
-5. Activar suscripción pagada: `update tenants set subscription_until = now() + interval '30 days' where id = '<id>';`
+5. Clínicas piloto: crea un código y comparte el enlace `https://<tu-app>/?codigo=PILOTO-NOMBRE`.
+   ```sql
+   insert into pilot_codes (code, trial_days, max_uses) values ('PILOTO-NOMBRE', 30, 1);
+   ```
+   El código también se puede escribir a mano al registrar el negocio. Cada cuenta puede tener un solo negocio.
+6. Activar suscripción pagada: `update tenants set subscription_until = now() + interval '30 days' where id = '<id>';`
 
 ## Modo demostración (sin Supabase)
 Con `VITE_DEMO=true` la app no necesita Supabase: carga Postgres dentro del navegador (PGlite) con las mismas
