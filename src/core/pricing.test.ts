@@ -34,7 +34,7 @@ describe('moneda y alertas', () => {
   it('marca stock bajo en el mínimo o debajo', () => {
     expect(isLowStock({ stock: 2, min_stock: 2 })).toBe(true); expect(isLowStock({ stock: 3, min_stock: 2 })).toBe(false)
   })
-  it('formatea USD', () => { expect(formatUsd(12.5)).toBe('USD 12.50') })
+  it('formatea USD', () => { expect(formatUsd(12.5)).toBe('USD 12,50'); expect(formatUsd(1234.5)).toBe('USD 1.234,50') })
 })
 
 describe('mensajes de error', () => {

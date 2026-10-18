@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCrud } from '@/shared/useCrud'
-import { Button, Empty, Field, Input } from '@/shared/ui'
+import { Button, Card, CreatePanel, Empty, Field, IconButton, Input } from '@/shared/ui'
 import { formatUsd } from '@/core/pricing'
 import type { GroomingService } from '@/core/entities'
 
@@ -18,16 +18,16 @@ function ServiceRow({ s, onSave, onRemove }: { s: GroomingService; onSave: (d: P
   const [v, setV] = useState<Prices>({ price_small: String(s.price_small), price_medium: String(s.price_medium), price_large: String(s.price_large) })
   const [mins, setMins] = useState(String(s.duration_min))
   return (
-    <li className="py-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-medium">{s.name} <span className="text-sm font-normal text-slate-500">{s.duration_min} min</span></span>
-        <span className="flex flex-wrap items-center gap-3 text-sm">
-          <span>{formatUsd(s.price_small)} / {formatUsd(s.price_medium)} / {formatUsd(s.price_large)}</span>
-          <Button variant="ghost" onClick={() => setOpen(!open)}>{open ? 'Cerrar' : 'Editar'}</Button>
-        </span>
+    <li className="py-3">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="font-bold">{s.name} <span className="text-sm font-normal text-muted">· {s.duration_min} min</span></p>
+          <p className="text-sm text-muted">Pequeño {formatUsd(s.price_small)} · Mediano {formatUsd(s.price_medium)} · Grande {formatUsd(s.price_large)}</p>
+        </div>
+        <IconButton icon={open ? 'close' : 'edit'} label={open ? 'Cerrar edición' : `Editar ${s.name}`} onClick={() => setOpen(!open)} />
       </div>
       {open && (
-        <form className="mt-2 grid gap-2 rounded-lg border p-3 sm:grid-cols-4" onSubmit={e => { e.preventDefault(); onSave({ ...toNumbers(v), duration_min: Number(mins) }); setOpen(false) }}>
+        <form className="mt-3 grid gap-3 rounded-xl border border-line p-3 sm:grid-cols-4" onSubmit={e => { e.preventDefault(); onSave({ ...toNumbers(v), duration_min: Number(mins) }); setOpen(false) }}>
           <PriceFields v={v} onChange={(k, val) => setV({ ...v, [k]: val })} />
           <Field label="Duración (min)"><Input required type="number" min="5" step="5" value={mins} onChange={e => setMins(e.target.value)} /></Field>
           <div className="flex gap-2 sm:col-span-4"><Button>Guardar cambios</Button>
@@ -46,16 +46,18 @@ export function ServicesPage() {
     setName(''); setV({ price_small: '', price_medium: '', price_large: '' })
   }
   return (
-    <section className="p-4">
-      <h1 className="mb-4 text-xl font-semibold">Servicios de peluquería</h1>
-      <form className="mb-4 grid gap-3 sm:grid-cols-2" onSubmit={submit}>
+    <div className="flex flex-col gap-4">
+      <CreatePanel label="Nuevo servicio">{close => (
+      <form className="grid gap-3 sm:grid-cols-2" onSubmit={e => { submit(e); close() }}>
         <Field label="Nombre del servicio"><Input required value={name} onChange={e => setName(e.target.value)} /></Field>
         <Field label="Duración (min)"><Input required type="number" min="5" step="5" value={mins} onChange={e => setMins(e.target.value)} /></Field>
         <PriceFields v={v} onChange={(k, val) => setV({ ...v, [k]: val })} />
         <div className="sm:col-span-2"><Button disabled={!name.trim()}>Agregar servicio</Button></div>
-      </form>
-      {list.data?.length === 0 && <Empty>Aún no tienes servicios. Agrega el primero, por ejemplo "Baño y corte".</Empty>}
-      <ul className="divide-y">{list.data?.map(s => <ServiceRow key={s.id} s={s} onSave={data => update(s.id, data)} onRemove={() => remove(s.id, s.name)} />)}</ul>
-    </section>
+      </form>)}</CreatePanel>
+      <Card>
+        {list.data?.length === 0 && <Empty>Aún no tienes servicios. Agrega el primero, por ejemplo «Baño y corte».</Empty>}
+        <ul className="divide-y divide-line">{list.data?.map(s => <ServiceRow key={s.id} s={s} onSave={data => update(s.id, data)} onRemove={() => remove(s.id, s.name)} />)}</ul>
+      </Card>
+    </div>
   )
 }

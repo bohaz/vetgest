@@ -13,6 +13,8 @@ import { GroomingLayout } from '@/features/grooming/GroomingLayout'
 import { AgendaPage } from '@/features/grooming/AgendaPage'
 import { ServicesPage } from '@/features/grooming/ServicesPage'
 import { PatientDetailPage } from '@/features/patients/PatientDetailPage'
+import { HomePage } from '@/features/home/HomePage'
+import { MorePage } from '@/features/layout/MorePage'
 
 export default function App() {
   const { session, tenantId, loading, recovering } = useAuth()
@@ -28,6 +30,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<AppShell />}>
+          <Route index element={<HomePage />} />
+          <Route path="/mas" element={<MorePage />} />
           <Route path="/clientes" element={<ClientsPage />} />
           <Route path="/pacientes" element={<PatientsPage />} />
           <Route path="/pacientes/:id" element={<PatientDetailPage />} />
@@ -37,7 +41,7 @@ export default function App() {
             <Route index element={<AgendaPage />} />
             <Route path="servicios" element={<ServicesPage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/clientes" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

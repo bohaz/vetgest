@@ -7,6 +7,7 @@
    (necesario para el enlace de «¿Olvidaste tu contraseña?», que vuelve a `/?recuperar=1`). Para el piloto conviene desactivar *Confirm email*.
    Google es opcional: actívalo en Supabase y define `VITE_GOOGLE_AUTH=true` para mostrar el botón.
 3. `cp .env.example .env` y completa `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+   Opcional: `VITE_FEEDBACK_WHATSAPP` (tu número con código de país) muestra «Enviar comentarios» en la app.
 4. `npm install && npm run dev`
 5. Clínicas piloto: crea un código y comparte el enlace `https://<tu-app>/?codigo=PILOTO-NOMBRE`.
    ```sql
@@ -44,6 +45,7 @@ ventas atómicas y anulaciones, bloqueo por stock y suscripción vencida, precio
 
 ## Arquitectura
 `core/` (contratos y lógica pura) → `infra/` (adaptadores: Supabase, local) → `features/` (UI por módulo).
+Interfaz: tokens de color y tipografía en `src/styles.css` (`@theme`), componentes en `src/shared/ui.tsx` e íconos en `src/shared/icons.tsx`.
 Para migrar a Rails, crea un adaptador con la misma interfaz y cámbialo en `shared/useRepository.ts` (y `infra/supabase/rpc.ts` para ventas y tasa).
 
 ## Reglas de negocio ya aplicadas

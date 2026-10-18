@@ -1,14 +1,14 @@
 import { subscriptionNotice, type SubscriptionStatus } from '@/core/subscription'
 
 const TONES = {
-  info: 'bg-teal-50 text-teal-900',
-  warning: 'bg-amber-50 text-amber-900',
-  danger: 'bg-red-50 text-red-800',
+  info: 'bg-brand-soft text-brand-ink',
+  warning: 'bg-warn-soft text-warn-ink',
+  danger: 'bg-danger-soft text-danger-ink',
 } as const
 
-/** Aviso del periodo de prueba o de la suscripción. No muestra nada si no hay que avisar. */
+/** Franja de aviso cuando el plan está por vencer o venció (el estado normal se ve en el menú). */
 export function SubscriptionNotice({ status }: { status: SubscriptionStatus | null }) {
   const notice = status && subscriptionNotice(status)
-  if (!notice) return null
-  return <p role="status" className={`px-4 py-1.5 text-xs ${TONES[notice.tone]}`}>{notice.text}</p>
+  if (!notice || notice.tone === 'info') return null
+  return <p role="status" className={`px-4 py-2 text-sm font-medium ${TONES[notice.tone]}`}>{notice.text}</p>
 }
