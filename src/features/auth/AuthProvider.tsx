@@ -2,11 +2,12 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { useQueryClient } from '@tanstack/react-query'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/infra/supabase/client'
+import { createTenant } from '@/infra/supabase/rpc'
 import { persister } from '@/infra/local/db'
 import { isNetworkError } from '@/core/errors'
 import { failures } from '@/features/sync/failures'
 
-interface Ctx { session: Session | null; tenantId: string | null; loading: boolean; createBusiness: (name: string) => Promise<void> }
+interface Ctx { session: Session | null; tenantId: string | null; loading: boolean; createBusiness: (name: string, inviteCode?: string) => Promise<void> }
 const AuthCtx = createContext<Ctx>(null!)
 export const useAuth = () => useContext(AuthCtx)
 
@@ -59,9 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadTenant(userId).finally(() => setLoading(false))
   }, [userId])
 
-  const createBusiness = async (name: string) => {
-    const { error } = await supabase.rpc('create_tenant', { p_name: name })
-    if (error) throw error
+  const createBusiness = async (name: string, inviteCode?: string) => {
+    await createTenant(name, inviteCode)
     await loadTenant(userId!)
   }
   return <AuthCtx.Provider value={{ session, tenantId, loading, createBusiness }}>{children}</AuthCtx.Provider>

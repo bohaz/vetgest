@@ -5,11 +5,13 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { createQueryClient, resumePending } from '@/shared/queryClient'
 import { persister } from '@/infra/local/db'
+import { captureInviteCode } from '@/features/auth/inviteCode'
 import App from './App'
 import './styles.css'
 
 // La librería asume conexión al iniciar; si la app se abre sin señal, la cola debe quedar en pausa desde el principio.
 onlineManager.setOnline(navigator.onLine)
+captureInviteCode()
 const queryClient = createQueryClient()
 const persistOptions = {
   persister,

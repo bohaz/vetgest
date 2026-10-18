@@ -19,3 +19,14 @@ export async function voidSale(saleId: string, reason: string) {
   const { error } = await supabase.rpc('void_sale', { p_sale: saleId, p_reason: reason })
   if (error) throw error
 }
+export interface TenantInfo { id: string; name: string; trial_ends_at: string; subscription_until: string | null }
+export async function getTenant(tenantId: string): Promise<TenantInfo> {
+  const { data, error } = await supabase.from('tenants').select('id, name, trial_ends_at, subscription_until').eq('id', tenantId).single()
+  if (error) throw error
+  return data as TenantInfo
+}
+export async function createTenant(name: string, code?: string) {
+  const { data, error } = await supabase.rpc('create_tenant', { p_name: name, p_code: code || null })
+  if (error) throw error
+  return data as string
+}

@@ -2,6 +2,8 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { supabase } from '@/infra/supabase/client'
 import { SyncStatus } from '@/features/sync/SyncStatus'
 import { DemoBanner } from '@/features/demo/DemoBanner'
+import { SubscriptionNotice } from '@/features/tenant/SubscriptionNotice'
+import { useTenant } from '@/features/tenant/useTenant'
 
 export const NAV = [
   { to: '/clientes', label: 'Clientes' },
@@ -16,6 +18,7 @@ const link = ({ isActive }: { isActive: boolean }) =>
   `min-w-0 truncate rounded-lg px-1 py-2 text-center text-xs font-medium sm:px-3 sm:text-sm ${isActive ? 'bg-teal-700 text-white' : 'text-slate-700 hover:bg-slate-100'}`
 
 export function AppShell() {
+  const { status } = useTenant()
   return (
     <div className="mx-auto min-h-screen max-w-3xl">
       <header className="sticky top-0 z-10 border-b bg-white">
@@ -27,6 +30,7 @@ export function AppShell() {
         <nav aria-label="Secciones" className="grid grid-cols-5 gap-1 p-2 sm:flex sm:px-3">
           {NAV.map(n => <NavLink key={n.to} to={n.to} className={link}>{n.label}</NavLink>)}
         </nav>
+        <SubscriptionNotice status={status} />
         <SyncStatus />
       </header>
       <Outlet />
