@@ -18,8 +18,10 @@ export const lineTotal = (l: CartLine) => round2(l.unitPrice * l.qty)
 export const cartTotal = (ls: CartLine[]) => round2(ls.reduce((s, l) => s + lineTotal(l), 0))
 export const toBs = (usd: number, rate: number | null) => (rate && rate > 0 ? round2(usd * rate) : null)
 export const isLowStock = (p: Pick<Product, 'stock' | 'min_stock'>) => p.stock <= p.min_stock
-export const formatUsd = (n: number) => `USD ${n.toFixed(2)}`
-export const formatBs = (n: number) => `Bs ${n.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+// Montos con el formato venezolano (1.234,50) en ambas monedas.
+const money = (n: number) => Number(n).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+export const formatUsd = (n: number) => `USD ${money(n)}`
+export const formatBs = (n: number) => `Bs ${money(n)}`
 
 /** Agrega una unidad (o `qty`) sin superar el stock disponible. */
 export function addToCart(cart: CartLine[], p: Product, qty = 1): CartLine[] {

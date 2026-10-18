@@ -10,7 +10,7 @@ describe('SalesHistory', () => {
   it('muestra cliente, método y montos por separado', () => {
     render(<SalesHistory sales={[sale()]} clients={clients} onVoid={vi.fn()} />)
     expect(screen.getByText('Ana Pérez · Pago Móvil')).toBeTruthy()
-    expect(screen.getByText('USD 24.00')).toBeTruthy()
+    expect(screen.getByText('USD 24,00')).toBeTruthy()
     expect(screen.getByText('Bs 876,00')).toBeTruthy()
   })
   it('pide motivo para anular y lo envía', () => {

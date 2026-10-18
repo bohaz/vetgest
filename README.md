@@ -1,13 +1,20 @@
 # VetGest (MVP)
 
 ## Puesta en marcha
-1. Crea un proyecto en Supabase y ejecuta `supabase/setup.sql` completo en el SQL Editor (reúne las migraciones 0001 a 0006).
+1. Crea un proyecto en Supabase y ejecuta `supabase/setup.sql` completo en el SQL Editor (reúne las migraciones 0001 a 0007).
    En un proyecto que ya tenga el esquema, ejecuta solo las migraciones nuevas. Si agregas una migración, corre `npm run db:bundle`.
-2. Auth → Providers: activa Email; agrega tu URL en Site URL y Redirect URLs. Para el piloto conviene desactivar *Confirm email*.
+2. Auth → Providers: activa Email. En URL Configuration pon tu dirección en *Site URL* y agrega `https://<tu-app>/**` en *Redirect URLs*
+   (necesario para el enlace de «¿Olvidaste tu contraseña?», que vuelve a `/?recuperar=1`). Para el piloto conviene desactivar *Confirm email*.
    Google es opcional: actívalo en Supabase y define `VITE_GOOGLE_AUTH=true` para mostrar el botón.
 3. `cp .env.example .env` y completa `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+   Opcional: `VITE_FEEDBACK_WHATSAPP` (tu número con código de país) muestra «Enviar comentarios» en la app.
 4. `npm install && npm run dev`
-5. Activar suscripción pagada: `update tenants set subscription_until = now() + interval '30 days' where id = '<id>';`
+5. Clínicas piloto: crea un código y comparte el enlace `https://<tu-app>/?codigo=PILOTO-NOMBRE`.
+   ```sql
+   insert into pilot_codes (code, trial_days, max_uses) values ('PILOTO-NOMBRE', 30, 1);
+   ```
+   El código también se puede escribir a mano al registrar el negocio. Cada cuenta puede tener un solo negocio.
+6. Activar suscripción pagada: `update tenants set subscription_until = now() + interval '30 days' where id = '<id>';`
 
 ## Modo demostración (sin Supabase)
 Con `VITE_DEMO=true` la app no necesita Supabase: carga Postgres dentro del navegador (PGlite) con las mismas
@@ -19,6 +26,9 @@ VITE_DEMO=true npm run dev
 ```
 
 Sirve para vistas previas y presentaciones. Fuera de la demostración, PGlite no se incluye en el build.
+
+## Respaldos
+Respaldo semanal cifrado y tarea que evita que Supabase pause el proyecto: ver [docs/respaldos.md](docs/respaldos.md).
 
 ## Tests
 `npm test` ejecuta 65 pruebas: lógica de precios, carrito, agenda, errores y cambios optimistas; la cola sin conexión
@@ -35,6 +45,7 @@ ventas atómicas y anulaciones, bloqueo por stock y suscripción vencida, precio
 
 ## Arquitectura
 `core/` (contratos y lógica pura) → `infra/` (adaptadores: Supabase, local) → `features/` (UI por módulo).
+Interfaz: tokens de color y tipografía en `src/styles.css` (`@theme`), componentes en `src/shared/ui.tsx` e íconos en `src/shared/icons.tsx`.
 Para migrar a Rails, crea un adaptador con la misma interfaz y cámbialo en `shared/useRepository.ts` (y `infra/supabase/rpc.ts` para ventas y tasa).
 
 ## Reglas de negocio ya aplicadas

@@ -2,11 +2,18 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { useQueryClient } from '@tanstack/react-query'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/infra/supabase/client'
+import { createTenant } from '@/infra/supabase/rpc'
 import { persister } from '@/infra/local/db'
 import { isNetworkError } from '@/core/errors'
 import { failures } from '@/features/sync/failures'
+import { clearRecoveryUrl, isRecoveryUrl } from './recovery'
 
-interface Ctx { session: Session | null; tenantId: string | null; loading: boolean; createBusiness: (name: string) => Promise<void> }
+interface Ctx {
+  session: Session | null; tenantId: string | null; loading: boolean
+  /** true cuando el usuario llegó desde el enlace para cambiar su contraseña. */
+  recovering: boolean; finishRecovery: () => void
+  createBusiness: (name: string, inviteCode?: string) => Promise<void>
+}
 const AuthCtx = createContext<Ctx>(null!)
 export const useAuth = () => useContext(AuthCtx)
 
@@ -31,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [tenantId, setTenantId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [recovering, setRecovering] = useState(() => isRecoveryUrl())
 
   const loadTenant = async (userId: string) => {
     // Arranque inmediato con el negocio recordado; el servidor lo confirma después (si hay señal).
@@ -49,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (event === 'SIGNED_OUT') { qc.clear(); failures.clear(); void persister.removeClient() }
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true)
       setSession(s)
     })
     return () => sub.subscription.unsubscribe()
@@ -59,10 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadTenant(userId).finally(() => setLoading(false))
   }, [userId])
 
-  const createBusiness = async (name: string) => {
-    const { error } = await supabase.rpc('create_tenant', { p_name: name })
-    if (error) throw error
+  const createBusiness = async (name: string, inviteCode?: string) => {
+    await createTenant(name, inviteCode)
     await loadTenant(userId!)
   }
-  return <AuthCtx.Provider value={{ session, tenantId, loading, createBusiness }}>{children}</AuthCtx.Provider>
+  const finishRecovery = () => { setRecovering(false); clearRecoveryUrl() }
+  return <AuthCtx.Provider value={{ session, tenantId, loading, recovering, finishRecovery, createBusiness }}>{children}</AuthCtx.Provider>
 }

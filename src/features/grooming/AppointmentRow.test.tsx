@@ -13,7 +13,7 @@ const setup = (appt: Partial<GroomingAppointment> = {}, href: string | null = nu
 describe('AppointmentRow', () => {
   it('muestra los datos de la cita y su precio', () => {
     setup()
-    expect(screen.getByText(/Rocky/)).toBeTruthy(); expect(screen.getByText(/Baño y corte · Grande · USD 45.00/)).toBeTruthy(); expect(screen.getByText('Pendiente')).toBeTruthy()
+    expect(screen.getByText(/Rocky/)).toBeTruthy(); expect(screen.getByText(/Baño y corte · Grande · USD 45,00/)).toBeTruthy(); expect(screen.getByText('Pendiente')).toBeTruthy()
   })
   it('una cita pendiente se puede iniciar, cancelar y recordar', () => {
     const { onStatus } = setup({}, 'https://wa.me/58412?text=Hola')
@@ -33,7 +33,7 @@ describe('AppointmentRow', () => {
   })
   it('una cita completada muestra el cobro y no ofrece acciones', () => {
     setup({ status: 'completada', paid_usd: 40, pay_method: 'pago_movil' })
-    expect(screen.getByText('Cobrado USD 40.00 · Pago Móvil')).toBeTruthy()
+    expect(screen.getByText('Cobrado USD 40,00 · Pago Móvil')).toBeTruthy()
     expect(screen.queryByText('Iniciar')).toBeNull(); expect(screen.queryByText('Cancelar cita')).toBeNull()
   })
 })

@@ -1,0 +1,25 @@
+name: Mantener Supabase activo
+# Supabase pausa los proyectos gratuitos tras una semana sin actividad. Esta consulta liviana lo evita.
+on:
+  schedule:
+    - cron: '0 12 */3 * *' # cada tres días
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Consultar la API de datos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Faltan los secretos SUPABASE_URL y/o SUPABASE_ANON_KEY (ver docs/respaldos.md)"; exit 1
+          fi
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$SUPABASE_URL/rest/v1/tenants?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "Respuesta: $code"
+          [ "$code" = "200" ]
