@@ -1,10 +1,10 @@
 import { clientPurchases, collectedOn, greeting, latestConsultations, longDate, lowStockProducts, nextAppointment, patientTimeline } from './dashboard'
 import { feedbackLink } from './feedback'
-import type { Consultation, GroomingAppointment, Product, Sale } from './entities'
+import type { Consultation, Appointment, Product, Sale } from './entities'
 
 const at = (d: string, h = 10) => new Date(`${d}T${String(h).padStart(2, '0')}:00:00`).toISOString()
 const sale = (o: Partial<Sale>): Sale => ({ id: 's', tenant_id: 't', total_usd: 10, created_at: at('2026-10-17'), ...o })
-const appt = (o: Partial<GroomingAppointment>): GroomingAppointment => ({ id: 'a', tenant_id: 't', patient_id: 'p1', starts_at: at('2026-10-17'), status: 'pendiente', size: 'mediano', ...o })
+const appt = (o: Partial<Appointment>): Appointment => ({ id: 'a', tenant_id: 't', kind: 'peluqueria', patient_id: 'p1', starts_at: at('2026-10-17'), status: 'pendiente', size: 'mediano', ...o })
 const prod = (o: Partial<Product>): Product => ({ id: 'x', tenant_id: 't', name: 'X', category: 'farmaco', price_usd: 1, stock: 10, min_stock: 2, ...o })
 
 describe('panel de inicio', () => {
@@ -16,7 +16,7 @@ describe('panel de inicio', () => {
   })
   it('suma lo cobrado del día: ventas no anuladas y peluquería completada ese día', () => {
     const sales = [sale({ total_usd: 24 }), sale({ total_usd: 9.9, voided_at: at('2026-10-17', 12) }), sale({ total_usd: 50, created_at: at('2026-10-16') })]
-    const appts = [appt({ status: 'completada', paid_usd: 15, completed_at: at('2026-10-17', 9) }), appt({ status: 'en_proceso', price_usd: 30 }),
+    const appts = [appt({ status: 'completada', paid_usd: 15, completed_at: at('2026-10-17', 9) }), appt({ status: 'en_proceso', price_usd: 30 }), appt({ kind: 'consulta', status: 'completada', completed_at: at('2026-10-17', 9) }),
       appt({ status: 'completada', paid_usd: 20, completed_at: at('2026-10-16') })]
     expect(collectedOn('2026-10-17', sales, appts)).toEqual({ usd: 39, salesCount: 1 })
   })
@@ -43,12 +43,30 @@ describe('ficha del paciente', () => {
     expect(t[0]).toMatchObject({ kind: 'peluqueria', title: 'Baño y corte', amountUsd: 30, status: 'pendiente' })
     expect(t[1]).toMatchObject({ kind: 'consulta', title: 'Otitis', lines: ['Diagnóstico: Otitis externa'], amountUsd: 30 })
   })
+  it('muestra el control agendado en su consulta y los controles a los que no vino, sin repetir los atendidos', () => {
+    const consultations: Consultation[] = [
+      { id: 'c1', tenant_id: 't', patient_id: 'p1', visit_date: at('2026-10-01'), reason: 'Otitis' },
+      { id: 'c2', tenant_id: 't', patient_id: 'p1', visit_date: at('2026-10-08'), reason: 'Control: Otitis', appointment_id: 'k1', evolution: 'mejoro' },
+    ]
+    const appts = [
+      appt({ id: 'k1', kind: 'consulta', size: undefined, follow_up_of: 'c1', status: 'completada', starts_at: at('2026-10-08') }),
+      appt({ id: 'k2', kind: 'consulta', size: undefined, follow_up_of: 'c2', status: 'no_asistio', notes: 'Control: Otitis', starts_at: at('2026-10-15') }),
+      appt({ id: 'k3', kind: 'consulta', size: undefined, follow_up_of: 'c2', status: 'pendiente', starts_at: at('2026-10-22', 9) }),
+    ]
+    const t = patientTimeline('p1', consultations, appts, services)
+    expect(t.map(i => i.id)).toEqual(['k2', 'c2', 'c1'])
+    expect(t[0]).toMatchObject({ kind: 'consulta', title: 'Control: Otitis', status: 'no_asistio' }); expect(t[0].removable).toBeFalsy()
+    expect(t[1]).toMatchObject({ evolution: 'mejoro', removable: true })
+    expect(t[1].lines.at(-1)).toMatch(/^Control agendado: 22 oct/)
+    expect(t[2].lines).toEqual([])
+  })
   it('encuentra la próxima cita activa desde hoy', () => {
     const now = new Date(2026, 9, 17, 8)
     const appts = [appt({ id: 'pasada', starts_at: at('2026-10-10') }), appt({ id: 'luego', starts_at: at('2026-10-20') }),
       appt({ id: 'hoy', starts_at: at('2026-10-17', 11) }), appt({ id: 'hecha', status: 'completada', starts_at: at('2026-10-17', 9) })]
     expect(nextAppointment('p1', appts, now)?.id).toBe('hoy')
     expect(nextAppointment('p2', appts, now)).toBeUndefined()
+    expect(nextAppointment('p1', [appt({ id: 'control', kind: 'consulta', starts_at: at('2026-10-18') })], now)?.id).toBe('control')
   })
   it('suma las compras no anuladas del dueño', () => {
     expect(clientPurchases('c1', [sale({ client_id: 'c1', total_usd: 24 }), sale({ client_id: 'c1', total_usd: 5, voided_at: at('2026-10-17') }), sale({ client_id: 'c2' })]))

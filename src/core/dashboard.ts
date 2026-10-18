@@ -1,9 +1,10 @@
 // Cálculos del panel de inicio y de la ficha del paciente. Funciones puras, sin acceso a datos.
-import type { Consultation, GroomingAppointment, GroomingService, Product, Sale } from './entities'
-import { localDateStr } from './grooming'
+import type { Appointment, AppointmentStatus, Consultation, Evolution, GroomingService, Product, Sale } from './entities'
+import { controlReason, followUpOf, isOpen } from './agenda'
+import { dayOf, formatTime, localDateStr } from './dates'
 import { isLowStock, round2 } from './pricing'
 
-const isOn = (iso: string | undefined | null, dateStr: string) => !!iso && localDateStr(new Date(iso)) === dateStr
+const isOn = (iso: string | undefined | null, dateStr: string) => !!iso && dayOf(iso) === dateStr
 const activeSales = (sales: Sale[]) => sales.filter(s => !s.voided_at)
 
 export function greeting(now = new Date()) {
@@ -18,10 +19,10 @@ export function longDate(now = new Date()) {
 }
 
 /** Lo cobrado en el día: ventas no anuladas más citas de peluquería completadas ese día. */
-export function collectedOn(dateStr: string, sales: Sale[], appointments: GroomingAppointment[]) {
+export function collectedOn(dateStr: string, sales: Sale[], appointments: Appointment[]) {
   const fromSales = activeSales(sales).filter(s => isOn(s.created_at, dateStr)).reduce((t, s) => t + Number(s.total_usd), 0)
   const fromGrooming = appointments
-    .filter(a => a.status === 'completada' && isOn(a.completed_at ?? a.starts_at, dateStr))
+    .filter(a => a.kind === 'peluqueria' && a.status === 'completada' && isOn(a.completed_at ?? a.starts_at, dateStr))
     .reduce((t, a) => t + Number(a.paid_usd ?? 0), 0)
   return { usd: round2(fromSales + fromGrooming), salesCount: activeSales(sales).filter(s => isOn(s.created_at, dateStr)).length }
 }
@@ -37,28 +38,43 @@ export const latestConsultations = (consultations: Consultation[], n = 3) =>
 export type TimelineKind = 'consulta' | 'peluqueria'
 export interface TimelineItem {
   id: string; kind: TimelineKind; date: string; title: string
-  lines: string[]; amountUsd?: number; status?: GroomingAppointment['status']
+  lines: string[]; amountUsd?: number; status?: AppointmentStatus; evolution?: Evolution | null
+  /** Solo las consultas se eliminan desde el historial. */
+  removable?: boolean
 }
 
-/** Historial único de consultas y peluquería del paciente, lo más reciente primero. */
-export function patientTimeline(patientId: string, consultations: Consultation[], appointments: GroomingAppointment[], services: GroomingService[]): TimelineItem[] {
-  const fromConsultations: TimelineItem[] = consultations.filter(c => c.patient_id === patientId).map(c => ({
-    id: c.id, kind: 'consulta', date: c.visit_date, title: c.reason || 'Consulta',
-    lines: [c.diagnosis && `Diagnóstico: ${c.diagnosis}`, c.treatment && `Tratamiento: ${c.treatment}`].filter(Boolean) as string[],
-    amountUsd: c.price_usd ? Number(c.price_usd) : undefined,
+const shortWhen = (iso: string) => `${new Date(iso).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })}, ${formatTime(iso)}`
+
+/**
+ * Historial del paciente, lo más reciente primero: consultas (con su control agendado), peluquería y controles a los
+ * que no vino. Los controles atendidos no se repiten: aparecen como la consulta que se registró en ellos.
+ */
+export function patientTimeline(patientId: string, consultations: Consultation[], appointments: Appointment[], services: GroomingService[]): TimelineItem[] {
+  const mine = appointments.filter(a => a.patient_id === patientId)
+  const fromConsultations: TimelineItem[] = consultations.filter(c => c.patient_id === patientId).map(c => {
+    const next = followUpOf(c.id, mine)
+    return {
+      id: c.id, kind: 'consulta', date: c.visit_date, title: c.reason || 'Consulta', evolution: c.evolution, removable: true,
+      lines: [c.diagnosis && `Diagnóstico: ${c.diagnosis}`, c.treatment && `Tratamiento: ${c.treatment}`,
+        next && isOpen(next) && `Control agendado: ${shortWhen(next.starts_at)}`].filter(Boolean) as string[],
+      amountUsd: c.price_usd ? Number(c.price_usd) : undefined,
+    }
+  })
+  const missedControls: TimelineItem[] = mine.filter(a => a.kind === 'consulta' && a.status === 'no_asistio').map(a => ({
+    id: a.id, kind: 'consulta', date: a.starts_at, title: a.notes || controlReason(), lines: [], status: a.status,
   }))
-  const fromGrooming: TimelineItem[] = appointments.filter(a => a.patient_id === patientId && a.status !== 'cancelada').map(a => ({
+  const fromGrooming: TimelineItem[] = mine.filter(a => a.kind === 'peluqueria' && a.status !== 'cancelada').map(a => ({
     id: a.id, kind: 'peluqueria', date: a.starts_at, title: services.find(s => s.id === a.service_id)?.name ?? 'Peluquería',
     lines: a.notes ? [a.notes] : [], amountUsd: a.paid_usd ?? a.price_usd ?? undefined, status: a.status,
   }))
-  return [...fromConsultations, ...fromGrooming].sort((a, b) => b.date.localeCompare(a.date))
+  return [...fromConsultations, ...missedControls, ...fromGrooming].sort((a, b) => b.date.localeCompare(a.date))
 }
 
-/** Próxima cita de peluquería pendiente o en curso (desde hoy). */
-export function nextAppointment(patientId: string, appointments: GroomingAppointment[], now = new Date()) {
+/** Próxima cita pendiente o en curso del paciente (desde hoy), de cualquier tipo. */
+export function nextAppointment(patientId: string, appointments: Appointment[], now = new Date()) {
   const today = localDateStr(now)
   return appointments
-    .filter(a => a.patient_id === patientId && (a.status === 'pendiente' || a.status === 'en_proceso') && localDateStr(new Date(a.starts_at)) >= today)
+    .filter(a => a.patient_id === patientId && isOpen(a) && dayOf(a.starts_at) >= today)
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0]
 }
 

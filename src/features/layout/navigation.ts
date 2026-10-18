@@ -7,7 +7,7 @@ export const NAV: NavItem[] = [
   { to: '/', label: 'Inicio', icon: 'home', end: true },
   { to: '/pacientes', label: 'Pacientes', icon: 'paw' },
   { to: '/clientes', label: 'Clientes', icon: 'users' },
-  { to: '/peluqueria', label: 'Peluquería', icon: 'scissors' },
+  { to: '/agenda', label: 'Agenda', icon: 'calendar' },
   { to: '/ventas', label: 'Ventas', icon: 'cart' },
   { to: '/inventario', label: 'Inventario', icon: 'box' },
 ]

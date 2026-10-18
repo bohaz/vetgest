@@ -1,13 +1,17 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useCrud } from '@/shared/useCrud'
 import { Avatar, Badge, Button, ButtonLink, Card, Empty, ExternalButton, IconButton, Page, PageHeader, Section } from '@/shared/ui'
 import { Icon, type IconName } from '@/shared/icons'
-import { SIZES, formatTime, localDateStr, whatsappLink } from '@/core/grooming'
+import { KIND_LABEL, dueControl } from '@/core/agenda'
+import { dayOf, formatTime, localDateStr } from '@/core/dates'
+import { sizeLabel } from '@/core/grooming'
+import { whatsappLink } from '@/core/whatsapp'
 import { clientPurchases, nextAppointment, patientTimeline } from '@/core/dashboard'
 import { formatUsd } from '@/core/pricing'
-import type { Client, Consultation, GroomingAppointment, GroomingService, Patient, Sale } from '@/core/entities'
+import type { Client, Consultation, Appointment, GroomingService, Patient, Sale } from '@/core/entities'
 import { ConsultationForm } from '@/features/consultations/ConsultationForm'
+import { useRecordConsultation } from '@/features/consultations/useRecordConsultation'
 import { PatientForm } from './PatientForm'
 import { PatientTimeline } from './PatientTimeline'
 
@@ -24,17 +28,22 @@ const shortDate = (iso: string) => new Date(iso).toLocaleDateString('es-VE', { d
 
 export function PatientDetailPage() {
   const { id = '' } = useParams(); const nav = useNavigate()
+  // Desde la agenda se llega con ?atender=<cita> para registrar la consulta de ese control.
+  const [params, setParams] = useSearchParams()
   // Todo sale de listas en caché: la ficha abre también sin conexión, incluso con pacientes recién creados.
   const patients = useCrud<Patient>('patients')
   const clientsList = useCrud<Client>('clients').list
   const consultations = useCrud<Consultation>('consultations')
-  const apptsList = useCrud<GroomingAppointment>('grooming_appointments').list
+  const apptsList = useCrud<Appointment>('appointments').list
   const servicesList = useCrud<GroomingService>('grooming_services').list
   const salesList = useCrud<Sale>('sales').list
+  const record = useRecordConsultation()
   // Mientras carga el historial no se muestran «sin consultas» ni «sin citas» que aún no son ciertos.
   const loading = [clientsList, consultations.list, apptsList, servicesList, salesList].some(l => l.isPending)
   const clients = clientsList.data ?? []; const appts = apptsList.data ?? []; const services = servicesList.data ?? []; const sales = salesList.data ?? []
-  const [editing, setEditing] = useState(false); const [consulting, setConsulting] = useState(false)
+  const [editing, setEditing] = useState(false)
+  // Formulario abierto: consulta nueva o el id del control que se atiende.
+  const [consulting, setConsulting] = useState<false | 'nueva' | string>(params.get('atender') ?? false)
 
   const p = patients.list.data?.find(x => x.id === id)
   if (patients.list.isLoading) return <Page><p>Cargando…</p></Page>
@@ -42,13 +51,16 @@ export function PatientDetailPage() {
 
   const owner = clients.find(c => c.id === p.client_id)
   const age = p.birth_date ? Math.max(0, Math.floor((Date.now() - new Date(p.birth_date).getTime()) / 31557600000)) : null
-  const size = SIZES.find(z => z.value === p.size)?.label
+  const size = sizeLabel(p.size)
   const timeline = patientTimeline(p.id, consultations.list.data ?? [], appts, services)
   const next = nextAppointment(p.id, appts)
   const lastConsult = timeline.find(i => i.kind === 'consulta')
   const purchases = owner ? clientPurchases(owner.id, sales) : null
   const wa = owner ? whatsappLink(owner.phone, `Hola ${owner.full_name.split(' ')[0]}, te escribimos por ${p.name}. `) : null
-  const nextText = next ? `${localDateStr(new Date(next.starts_at)) === localDateStr() ? 'Hoy' : shortDate(next.starts_at)} ${formatTime(next.starts_at)} · Peluquería` : 'Sin citas próximas'
+  const nextText = next ? `${dayOf(next.starts_at) === localDateStr() ? 'Hoy' : shortDate(next.starts_at)} ${formatTime(next.starts_at)} · ${KIND_LABEL[next.kind]}` : 'Sin citas próximas'
+  const due = dueControl(p.id, appts)
+  const attending = consulting && consulting !== 'nueva' ? appts.find(a => a.id === consulting && a.patient_id === p.id && a.status === 'pendiente') : undefined
+  const closeForm = () => { setConsulting(false); if (params.has('atender')) setParams({}, { replace: true }) }
 
   return (
     <Page>
@@ -82,13 +94,16 @@ export function PatientDetailPage() {
       </section>
 
       <div className="flex flex-wrap gap-2">
-        <Button icon="plus" onClick={() => setConsulting(true)}>Nueva consulta</Button>
-        <ButtonLink variant="secondary" icon="scissors" to={`/peluqueria?paciente=${p.id}`}>Agendar peluquería</ButtonLink>
+        {due && <Button icon="stethoscope" onClick={() => setConsulting(due.id)}>Atender control de las {formatTime(due.starts_at)}</Button>}
+        <Button icon="plus" variant={due ? 'secondary' : 'primary'} onClick={() => setConsulting('nueva')}>Nueva consulta</Button>
+        <ButtonLink variant="secondary" icon="calendar" to={`/agenda?paciente=${p.id}&tipo=consulta`}>Agendar control</ButtonLink>
+        <ButtonLink variant="secondary" icon="scissors" to={`/agenda?paciente=${p.id}&tipo=peluqueria`}>Agendar peluquería</ButtonLink>
         {owner && <ButtonLink variant="secondary" icon="cart" to={`/ventas?cliente=${owner.id}`}>Vender a {owner.full_name.split(' ')[0]}</ButtonLink>}
       </div>
-      {consulting && (
-        <Section title="Nueva consulta">
-          <ConsultationForm patientId={p.id} onSubmit={c => { consultations.create(c as Consultation); setConsulting(false) }} onCancel={() => setConsulting(false)} />
+      {consulting && !loading && (
+        <Section title={attending ? 'Atender control' : 'Nueva consulta'}>
+          <ConsultationForm key={attending?.id ?? 'nueva'} patientId={p.id} attending={attending}
+            onSubmit={(c, followUp) => { record(c, followUp); closeForm() }} onCancel={closeForm} />
         </Section>)}
 
       <Section title="Historial" action={!loading && timeline.length > 0 ? <Badge>{timeline.length} {timeline.length === 1 ? 'registro' : 'registros'}</Badge> : undefined}>

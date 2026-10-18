@@ -23,7 +23,7 @@ export const applySaleToStock = <P extends Row & { stock: number }>(products: P[
 /** Nombre legible de un registro para avisos («Cliente Ana Pérez»). */
 const LABELS: Record<string, string> = {
   clients: 'Cliente', patients: 'Paciente', consultations: 'Consulta', products: 'Producto',
-  grooming_services: 'Servicio', grooming_appointments: 'Cita de peluquería',
+  grooming_services: 'Servicio', appointments: 'Cita',
 }
 export function describe(table: string, data: Record<string, unknown> = {}): string {
   const name = data.full_name ?? data.name ?? data.reason

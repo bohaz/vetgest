@@ -1,7 +1,7 @@
 # VetGest (MVP)
 
 ## Puesta en marcha
-1. Crea un proyecto en Supabase y ejecuta `supabase/setup.sql` completo en el SQL Editor (reúne las migraciones 0001 a 0007).
+1. Crea un proyecto en Supabase y ejecuta `supabase/setup.sql` completo en el SQL Editor (reúne las migraciones 0001 a 0008).
    En un proyecto que ya tenga el esquema, ejecuta solo las migraciones nuevas. Si agregas una migración, corre `npm run db:bundle`.
 2. Auth → Providers: activa Email. En URL Configuration pon tu dirección en *Site URL* y agrega `https://<tu-app>/**` en *Redirect URLs*
    (necesario para el enlace de «¿Olvidaste tu contraseña?», que vuelve a `/?recuperar=1`). Para el piloto conviene desactivar *Confirm email*.
@@ -52,4 +52,6 @@ Para migrar a Rails, crea un adaptador con la misma interfaz y cámbialo en `sha
 - Las ventas se registran solo con `register_sale` (atómica); el stock no puede quedar negativo.
 - La tasa del día la cambia un owner/admin; cada venta guarda la tasa vigente.
 - Las ventas no se editan ni se borran: se anulan con `void_sale` (solo owner/admin, con motivo), que repone el stock y registra quién y cuándo.
-- Las citas de peluquería fijan su precio según el tamaño al agendarse y no se pueden completar sin monto y método de pago.
+- Agenda única (tabla `appointments`, tipo `consulta` o `peluqueria`). Las citas de peluquería fijan su precio según el tamaño al agendarse y no se pueden completar sin monto y método de pago.
+- Seguimiento: al guardar una consulta se puede agendar el próximo control (`follow_up_of`). Al atenderlo, la consulta nueva queda enlazada a la cita (`appointment_id`) con su evolución (mejoró, igual, empeoró, alta) y la cita se completa. Una cita puede marcarse «no vino» (`no_asistio`); esos controles aparecen en el inicio para reagendarlos.
+- Recordatorios manuales: el inicio lista las citas de mañana con un botón que abre WhatsApp con el mensaje escrito; al usarlo, la cita queda marcada como recordada (`reminded_at`).

@@ -9,8 +9,8 @@ import { ClientsPage } from '@/features/clients/ClientsPage'
 import { PatientsPage } from '@/features/patients/PatientsPage'
 import { ProductsPage } from '@/features/products/ProductsPage'
 import { SalesPage } from '@/features/sales/SalesPage'
-import { GroomingLayout } from '@/features/grooming/GroomingLayout'
-import { AgendaPage } from '@/features/grooming/AgendaPage'
+import { AgendaLayout } from '@/features/agenda/AgendaLayout'
+import { AgendaPage } from '@/features/agenda/AgendaPage'
 import { ServicesPage } from '@/features/grooming/ServicesPage'
 import { PatientDetailPage } from '@/features/patients/PatientDetailPage'
 import { HomePage } from '@/features/home/HomePage'
@@ -37,10 +37,12 @@ export default function App() {
           <Route path="/pacientes/:id" element={<PatientDetailPage />} />
           <Route path="/inventario" element={<ProductsPage />} />
           <Route path="/ventas" element={<SalesPage />} />
-          <Route path="/peluqueria" element={<GroomingLayout />}>
+          <Route path="/agenda" element={<AgendaLayout />}>
             <Route index element={<AgendaPage />} />
             <Route path="servicios" element={<ServicesPage />} />
           </Route>
+          {/* Dirección anterior, por si alguien la guardó. */}
+          <Route path="/peluqueria/*" element={<Navigate to="/agenda" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
