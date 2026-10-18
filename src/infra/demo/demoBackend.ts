@@ -5,8 +5,9 @@
 import type { PGlite } from '@electric-sql/pglite'
 
 import { DEMO_EMAIL, DEMO_PASSWORD } from '@/features/demo/demoCredentials'
-const DB_NAME = 'idb://vetgest-demo'
 const migrations = import.meta.glob('/supabase/migrations/*.sql', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+// Una base por versión del esquema: al agregar una migración, la demo empieza de cero en vez de quedar con tablas viejas.
+const DB_NAME = `idb://vetgest-demo-v${Object.keys(migrations).length}`
 
 let dbPromise: Promise<PGlite> | null = null
 const getDb = () => (dbPromise ??= open())
@@ -160,11 +161,12 @@ async function seed(db: PGlite) {
     (await one<{ id: string }>('insert into patients(tenant_id, client_id, name, species, breed, weight_kg, size) values ($1,$2,$3,$4,$5,$6,$7) returning id', [T, c, n, sp, br, w, size])).id
   const rocky = await pt(ana, 'Rocky', 'Perro', 'Golden Retriever', 32, 'grande')
   const luna = await pt(luis, 'Luna', 'Perro', 'Poodle', 6, 'pequeno')
-  await pt(maria, 'Michi', 'Gato', 'Mestizo', 4.2, null)
+  const michi = await pt(maria, 'Michi', 'Gato', 'Mestizo', 4.2, null)
   const toby = await pt(maria, 'Toby', 'Perro', 'Schnauzer', 9, 'mediano')
   await db.query(`insert into consultations(tenant_id, patient_id, visit_date, reason, diagnosis, treatment, price_usd) values
-    ($1,$2, now() - interval '20 days', 'Vacunación anual', null, 'Vacuna séxtuple + desparasitación', 25),
-    ($1,$2, now() - interval '2 days', 'Otitis en oído derecho', 'Otitis externa bacteriana', 'Limpieza y gotas óticas por 7 días', 30)`, [T, rocky])
+    ($1,$2, now() - interval '20 days', 'Vacunación anual', null, 'Vacuna séxtuple + desparasitación', 25)`, [T, rocky])
+  const otitis = (await one<{ id: string }>(`insert into consultations(tenant_id, patient_id, visit_date, reason, diagnosis, treatment, price_usd) values
+    ($1,$2, now() - interval '2 days', 'Otitis en oído derecho', 'Otitis externa bacteriana', 'Limpieza y gotas óticas por 7 días', 30) returning id`, [T, rocky])).id
   for (const [n, c, p, s, min] of [['Vacuna séxtuple', 'farmaco', 12, 20, 5], ['Desparasitante Drontal', 'farmaco', 4.5, 3, 5], ['Alimento Dog Chow 15 kg', 'alimento', 38, 8, 2],
     ['Ivermectina 1% 50 ml', 'agropecuario', 7, 15, 3], ['Sal mineralizada 25 kg', 'agropecuario', 18, 6, 2], ['Collar antipulgas', 'accesorio', 9.9, 12, 2]] as const)
     await db.query('insert into products(tenant_id, name, category, price_usd, stock, min_stock) values ($1,$2,$3,$4,$5,$6)', [T, n, c, p, s, min])
@@ -175,9 +177,14 @@ async function seed(db: PGlite) {
   const bath = await sv('Baño y corte', 15, 22, 30, 90); const onlyBath = await sv('Solo baño', 10, 14, 18, 60)
   // Citas de hoy en la hora local del navegador.
   const at = (h: number) => { const d = new Date(); d.setHours(h, 0, 0, 0); return d.toISOString() }
-  const appt = 'insert into grooming_appointments(tenant_id, patient_id, service_id, starts_at, size) values ($1,$2,$3,$4,$5)'
+  const appt = 'insert into appointments(tenant_id, patient_id, service_id, starts_at, size) values ($1,$2,$3,$4,$5)'
   await db.query(appt, [T, luna, bath, at(9), 'pequeno']); await db.query(appt, [T, rocky, bath, at(11), 'grande']); await db.query(appt, [T, toby, onlyBath, at(15), 'mediano'])
-  await db.query("update grooming_appointments set status = 'completada', paid_usd = 15, pay_method = 'efectivo_usd' where patient_id = $1", [luna])
-  await db.query("update grooming_appointments set status = 'en_proceso' where patient_id = $1", [rocky])
+  await db.query("update appointments set status = 'completada', paid_usd = 15, pay_method = 'efectivo_usd' where patient_id = $1", [luna])
+  await db.query("update appointments set status = 'en_proceso' where patient_id = $1", [rocky])
+  // Seguimiento: control de Rocky mañana (para recordar) y un control al que Michi no vino.
+  const dayAt = (days: number, h: number) => { const d = new Date(); d.setDate(d.getDate() + days); d.setHours(h, 0, 0, 0); return d.toISOString() }
+  const control = "insert into appointments(tenant_id, patient_id, kind, starts_at, notes, follow_up_of, status) values ($1,$2,'consulta',$3,$4,$5,$6)"
+  await db.query(control, [T, rocky, dayAt(1, 10), 'Control: Otitis en oído derecho', otitis, 'pendiente'])
+  await db.query(control, [T, michi, dayAt(-3, 16), 'Control: Vacunación', null, 'no_asistio'])
   await db.exec('reset role')
 }

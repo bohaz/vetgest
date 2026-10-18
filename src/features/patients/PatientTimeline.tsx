@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Badge, Empty, IconButton, Segmented } from '@/shared/ui'
 import { formatUsd } from '@/core/pricing'
-import { STATUS_LABEL, formatTime } from '@/core/grooming'
+import { STATUS_LABEL, evolutionLabel } from '@/core/agenda'
+import { formatTime } from '@/core/dates'
 import type { TimelineItem, TimelineKind } from '@/core/dashboard'
-import { STATUS_TONE } from '@/features/grooming/status'
+import { STATUS_TONE } from '@/features/agenda/status'
 
 type Filter = 'todo' | TimelineKind
 const FILTERS: { value: Filter; label: string }[] = [{ value: 'todo', label: 'Todo' }, { value: 'consulta', label: 'Consultas' }, { value: 'peluqueria', label: 'Peluquería' }]
@@ -32,7 +33,8 @@ export function PatientTimeline({ items, onRemoveConsultation }: { items: Timeli
             <div className="flex flex-wrap items-center gap-2 text-sm text-ink/80">
               {i.amountUsd ? <span>{formatUsd(i.amountUsd)}</span> : null}
               {i.status && <Badge tone={STATUS_TONE[i.status]}>{STATUS_LABEL[i.status]}</Badge>}
-              {i.kind === 'consulta' && (
+              {i.evolution && <Badge tone={i.evolution === 'empeoro' ? 'warn' : 'brand'}>Evolución: {evolutionLabel(i.evolution)}</Badge>}
+              {i.removable && (
                 <IconButton icon="trash" label={`Eliminar consulta ${i.title}`} className="ml-auto size-9 hover:text-danger-ink"
                   onClick={() => confirm('¿Eliminar esta consulta?') && onRemoveConsultation(i.id, i.title)} />)}
             </div>

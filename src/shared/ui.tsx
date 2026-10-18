@@ -48,7 +48,7 @@ export function Section({ title, action, children, className }: { title: string;
   const id = `s-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
   return (
     <Card as="section" aria-labelledby={id} className={className}>
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 id={id} className="text-lg font-extrabold">{title}</h2>
         {action}
       </div>

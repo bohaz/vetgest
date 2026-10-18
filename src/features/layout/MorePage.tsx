@@ -31,7 +31,7 @@ export function MorePage() {
         <ul className="divide-y divide-line">
           <Row icon="users" label="Clientes" detail="Dueños y sus datos de contacto" to="/clientes" />
           <Row icon="box" label="Inventario" detail="Productos, precios y stock" to="/inventario" />
-          <Row icon="scissors" label="Servicios de peluquería" detail="Precios por tamaño" to="/peluqueria/servicios" />
+          <Row icon="scissors" label="Servicios de peluquería" detail="Precios por tamaño" to="/agenda/servicios" />
         </ul>
       </Card>
       <PlanCard status={status} />

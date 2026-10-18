@@ -2,18 +2,21 @@ import { Link } from 'react-router-dom'
 import { useCrud } from '@/shared/useCrud'
 import { Avatar, Badge, ButtonLink, Empty, Page, Section, StatCard } from '@/shared/ui'
 import { Icon, type IconName } from '@/shared/icons'
-import { appointmentsOfDay, daySummary, formatTime, localDateStr, SIZES, STATUS_LABEL } from '@/core/grooming'
+import { STATUS_LABEL, appointmentsOfDay, daySummary, missedFollowUps, remindersFor } from '@/core/agenda'
+import { formatTime, localDateStr, shiftDay } from '@/core/dates'
+import { sizeLabel } from '@/core/grooming'
 import { collectedOn, greeting, latestConsultations, longDate, lowStockProducts } from '@/core/dashboard'
 import { formatBs, formatUsd, toBs } from '@/core/pricing'
-import type { Client, Consultation, GroomingAppointment, GroomingService, Patient, Product, Sale } from '@/core/entities'
+import type { Client, Consultation, Appointment, GroomingService, Patient, Product, Sale } from '@/core/entities'
 import { useTenant } from '@/features/tenant/useTenant'
 import { RateChip } from '@/features/sales/RateChip'
 import { useRate } from '@/features/sales/useRate'
-import { STATUS_TONE } from '@/features/grooming/status'
+import { STATUS_TONE } from '@/features/agenda/status'
+import { MissedControls, TomorrowReminders } from '@/features/agenda/FollowUpSections'
 
 const QUICK: { to: string; label: string; icon: IconName }[] = [
   { to: '/ventas', label: 'Nueva venta', icon: 'cart' },
-  { to: '/peluqueria', label: 'Agendar cita', icon: 'calendar' },
+  { to: '/agenda', label: 'Agendar cita', icon: 'calendar' },
   { to: '/pacientes?nuevo=1', label: 'Nuevo paciente', icon: 'paw' },
   { to: '/clientes?nuevo=1', label: 'Nuevo cliente', icon: 'userPlus' },
 ]
@@ -21,8 +24,9 @@ const QUICK: { to: string; label: string; icon: IconName }[] = [
 export function HomePage() {
   const { tenant } = useTenant()
   const { rate } = useRate()
+  const appointments = useCrud<Appointment>('appointments')
   const lists = {
-    appts: useCrud<GroomingAppointment>('grooming_appointments').list, services: useCrud<GroomingService>('grooming_services').list,
+    appts: appointments.list, services: useCrud<GroomingService>('grooming_services').list,
     patients: useCrud<Patient>('patients').list, clients: useCrud<Client>('clients').list, sales: useCrud<Sale>('sales').list,
     products: useCrud<Product>('products').list, consultations: useCrud<Consultation>('consultations').list,
   }
@@ -36,6 +40,8 @@ export function HomePage() {
   const todays = appointmentsOfDay(appts, today); const day = daySummary(todays)
   const collected = collectedOn(today, sales, appts); const collectedBs = toBs(collected.usd, rate)
   const low = lowStockProducts(products)
+  const tomorrow = remindersFor(appts, shiftDay(today, 1)); const missed = missedFollowUps(appts, consultations, now)
+  const lookup = { patients, clients, services }
   const patient = (id: string) => patients.find(p => p.id === id)
   const owner = (p?: Patient) => clients.find(c => c.id === p?.client_id)?.full_name
 
@@ -61,7 +67,8 @@ export function HomePage() {
       </section>
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <Section title="Peluquería de hoy" action={<Link to="/peluqueria" className="text-sm font-bold">Ver agenda</Link>}>
+        <div className="flex flex-col gap-4">
+        <Section title="Agenda de hoy" action={<Link to="/agenda" className="text-sm font-bold">Ver agenda</Link>}>
           {loading ? <Empty>Cargando…</Empty> : todays.length === 0 ? <Empty>No hay citas para hoy.</Empty> : (
             <ul className="divide-y divide-line">{todays.map(a => {
               const p = patient(a.patient_id)
@@ -71,7 +78,10 @@ export function HomePage() {
                   <Avatar name={p?.name ?? '?'} />
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-bold">{p?.name ?? '—'} <span className="font-medium text-muted">· {owner(p) ?? '—'}</span></span>
-                    <span className="truncate text-sm text-muted">{services.find(s => s.id === a.service_id)?.name ?? 'Peluquería'} · {SIZES.find(z => z.value === a.size)?.label}</span>
+                    <span className="flex items-center gap-1.5 truncate text-sm text-muted">
+                      <Icon name={a.kind === 'consulta' ? 'stethoscope' : 'scissors'} size={15} className={a.kind === 'consulta' ? 'text-brand' : 'text-[#d97706]'} />
+                      {a.kind === 'consulta' ? a.notes || 'Consulta' : `${services.find(s => s.id === a.service_id)?.name ?? 'Peluquería'} · ${sizeLabel(a.size) ?? ''}`}
+                    </span>
                   </div>
                   <Badge tone={STATUS_TONE[a.status]}>{STATUS_LABEL[a.status]}</Badge>
                 </li>
@@ -79,6 +89,9 @@ export function HomePage() {
             })}</ul>
           )}
         </Section>
+        {!loading && <TomorrowReminders appts={tomorrow} {...lookup} onReminded={a => appointments.update(a.id, { reminded_at: new Date().toISOString() })} />}
+        {!loading && <MissedControls appts={missed} {...lookup} />}
+        </div>
 
         <div className="flex flex-col gap-4">
           <Section title="Acciones rápidas">
