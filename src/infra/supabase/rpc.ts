@@ -26,7 +26,8 @@ export async function getTenant(tenantId: string): Promise<TenantInfo> {
   return data as TenantInfo
 }
 export async function createTenant(name: string, code?: string) {
-  const { data, error } = await supabase.rpc('create_tenant', { p_name: name, p_code: code || null })
+  // Sin código se envía solo el nombre: funciona con y sin la migración 0007 aplicada.
+  const { data, error } = await supabase.rpc('create_tenant', code ? { p_name: name, p_code: code } : { p_name: name })
   if (error) throw error
   return data as string
 }
