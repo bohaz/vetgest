@@ -11,6 +11,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      - name: Revisar scripts de shell
+        run: shellcheck scripts/*.sh
       - run: npx tsc -b
       - run: npm test
       - run: npx vite build

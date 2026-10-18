@@ -1,0 +1,35 @@
+name: Respaldo semanal
+on:
+  schedule:
+    - cron: '0 7 * * 0' # domingos 07:00 UTC (03:00 en Venezuela)
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Revisar secretos
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Faltan los secretos SUPABASE_DB_URL y/o BACKUP_PASSPHRASE (ver docs/respaldos.md)"; exit 1
+          fi
+      - name: Instalar cliente de PostgreSQL 17
+        # pg_dump debe ser igual o más nuevo que el servidor de Supabase.
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: Respaldar y cifrar
+        run: scripts/backup.sh backups
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vetgest-respaldo-${{ github.run_number }}
+          path: backups/*.tar.gpg
+          retention-days: 90
+          if-no-files-found: error
